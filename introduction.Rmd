@@ -1,0 +1,84 @@
+### Introduction
+
+When designing a study to evaluate the clinical utility of a risk prediction biomarker for time to event data, what sample size should one use to ensure that definite conclusions can be drawn? The purpose of this web application is to guide researchers in this decision.
+
+Often a goal is to test whether a marker has clinical value with respect to a given accuracy measure $A$ (i.e. $AUC$, $TPR$, $FPR$, ...). This test takes the form:
+
+$$
+H_0 : A \le A_0 \; vs. \\
+H_a : A > A_0
+$$
+
+where $A_0$ is the minimal performance requirement for the marker.
+
+For a biomarker with expected accuracy measure performance $A = A_{expected}$, this application uses Monte Carlo simulation to assess the performance of estimation procedures under nested case-control study design.
+
+### Nested Case Control Study Design
+
+  
+### Modeling 
+In order to generate time to event data such that the performance of the marker yields $A_{expected}$ for a given measure, we make the following modelling choices:
+
+* Distribution of the marker $Y$: This application assumes $Y \sim N(0,1)$. More options for the distribution of $Y$ may be added later.  
+
+* The failure time $T$: We model survival via the survival function $S(t |Y) = P(T >t|Y)$ and assume a Cox-Proportional hazards model:
+
+$$
+S(t|Y) = S_0 (t)^{e^{\beta Y}}
+$$
+
+where the baseline survival distribution $S_0(t)$ is assumed to be exponential:
+$$
+S_0(t) = e^{-at}
+$$
+
+The value for $a$ is determined by the inputs for baseline survival at time t $S_0(t)$ for a given time $t$, and the value for $\beta$ is determined by the expected value of the accuracy measure of interest. 
+
+* Censoring: We assume non-informative censoring.  
+
+### Time-dependent measures of accuracy
+
+For a continuous marker measured at baseline, $Y$, a cutpoint $c$ must be specified such that $Y>c$ determines the subgroup of observations deemed ''high risk'' and $Y \le c$ ''low risk''. Once this is specified, along with a future time $t_{predict}$ at which we wish to predict performance, the following time-dependent measures of accuracy can be considered for sample size and power calculations:
+
+
+* True positive rate: $TPR_t ( c ) = P(Y > c | T \le t_{predict})$
+* False positive rate: $FPR_t ( c ) = P(Y > c | T > t_{predict})$
+
+* Area under the ROC curve: $AUC_t = \int_0 ^1 TPR_{t_{predict}} (FPR_{t_{predict}} ^{-1}(u)) du$
+
+* Positive predictive value: $PPV_t ( c ) = P(T \le t_{predict} | Y > c)$
+* Negative predictive value: $NPV_t ( c ) = P(T > t_{predict} | Y \le c)$
+
+### Estimation
+
+Estimates for all measures are calculated via semiparametric methods assuming a proportional hazards model using perturbation methods to account for the nested case-control design. An R package that implements the estimation procedures used in this application is available [**here**](http://mdbrown.github.io/survMarkerTwoPhase/). Please see the referenced papers for detailed information regarding estimation. 
+
+***Note: Non-parametric estimation methods will be added shortly!***
+
+### Resources
+
+ - **Source Code** available upon request to mdbrown@fhcrc.org. 
+ 
+ - [**R package survMarkerTwoPhase:**](http://mdbrown.github.io/survMarkerTwoPhase/)A package to implement the estimation procedures used here. 
+
+### References
+
+1. Liu D, Cai T, Zheng Y. Evaluating the predictive value of biomarkers with stratified case-cohort design. *Biometrics* 2012, 4: 1219-1227.
+
+
+2. Pepe MS, Zheng Y, Jin Y. Evaluating the ROC performance of markers for future events. *Lifetime Data Analysis.* 2008, 14: 86-113.
+
+3. Zheng Y, Cai T, Pepe MS, Levy, W. Time-dependent predictive values of prognostic biomarkers with failure time outcome. *JASA* 2008, 103: 362-368.
+
+###   &nbsp;  
+
+ This app was built using [R](http://www.r-project.org/) and [Shiny](http://www.rstudio.com/shiny/). Please direct any questions to mdbrown@fhcrc.org. 
+
+
+
+
+
+
+
+
+

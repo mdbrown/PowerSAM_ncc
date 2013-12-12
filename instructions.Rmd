@@ -1,0 +1,8 @@
+### Instructions for use
+
+1. Using the tab "Model Characteristics" to guide your decisions, choose the accuracy measure you wish to compute sample size for. Specify the marker cutpoint (if needed), the baseline hazard, and other parameters, including the expected value of the measure, and the hypothesis test you wish to calculate power for.
+
+2. Under the "Set Sample Size" tab, choose the type of case-cohort sampling, and set the cohort and subcohort sample sizes. 
+
+3. Navigate to the "Simulate Power" tab to run simulations to learn how studies with the specified sample size perform with respect to your measure of interest and other measures. 
+
