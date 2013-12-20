@@ -18,8 +18,20 @@ source("CoxPtb.R")
 shinyServer(function(input, output) {
 
   
+  ### contents 
   
-   # simulate power for a given cohort sample size
+  # 1. Reactive Functions
+  # 2. render UI functions
+  # 3. render text
+  # 4. render tables
+  # 5. render plots
+  
+  
+#####
+## Reactive Functions
+#####
+  
+   # simulate power for a given sample size
  getSimulateN <- reactive({
     if(input$runSim!=0){
 
@@ -59,7 +71,32 @@ shinyServer(function(input, output) {
  
   
 
- 
+PrNocens <- reactive({
+  if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
+  else {
+    a = -log(input$S.0)/input$t.0
+    
+    my_fun <- function( Y,a, t, beta){
+      (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
+    }
+    if(substr(input$parameter, 1,3)!="bet"){
+      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+    }else{
+      mybetas <-c(input$H0, input$Ha)
+    }
+    
+    Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
+    
+  }
+  
+  Pr.Nocens
+  
+})
+
+
+#####
+## render ui's
+#####
  
   
   output$censType <- renderUI({
@@ -96,6 +133,13 @@ shinyServer(function(input, output) {
     
   })
 
+
+#####
+## Render text 
+#####
+
+
+
  output$printEstMethod <-renderText({
    
    if(is.null(getSimulateN())) return(NULL)
@@ -117,35 +161,180 @@ shinyServer(function(input, output) {
  
  output$printSampSizeNCC <-renderText({
    if(is.null(getSimulateN())) return(NULL)
-   HTML(paste(ifelse(getSimulateN()$type ==1, "(Average) ", " "), "NCC sample size: <strong>", round(mean(getSimulateN()$N_NCC)), "</strong>" ,sep = ""))
+   HTML(paste(ifelse(getSimulateN()$type ==1, "(Average) ", " "), "NCC sample size: <strong>", round(mean(getSimulateN()$N_ncc)), "</strong>" ,sep = ""))
    
  }) 
   
-  output$EstimateNtable <- renderTable({
-    if(!is.null(getEstimateN())){
 
-      if(FALSE){ x <- getEstimateN()$logit.N
-      }else{ x <-  getEstimateN()$N
-      }
+output$getEventRates <- renderText({
+  a = -log(input$S.0)/input$t.0
+  
+  my_fun <- function( Y,a, t, beta){
+    (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
+  }
+  if(substr(input$parameter, 1,3)!="bet"){
+    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+  }else{
+    mybetas <-c(input$H0, input$Ha)
+  }
+  
+  Event.rate <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$predict.time, beta = mybetas[2] )$value
+  
+  if(input$censorType=="cens.perc") {
+    Pr.Nocens  = 1-input$cens.perc/100
+    out = Event.rate*Pr.Nocens 
+  }
+  else{
+    
+    if(input$predict.time <= input$time.max) out = Event.rate
+    else out =integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
+    
+  }
+  
+  x <- HTML(paste("<li><strong>Event rate at prediction time: Pr( T < prediction time & T not censored) =",  round(out, 3), "</strong></li>"))
+  x
+  
+})
 
-      mytable <- data.frame(rbind(summary(x)))
-      names(mytable) = c("Min.", "1st. Qu.", "Median", "Mean", "3rd Qu.", "Max")
-      mytable 
+output$censoringPercentage <- renderText({
+  
+  
+  
+  if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
+  else {
+    a = -log(input$S.0)/input$t.0
+    
+    my_fun <- function( Y,a, t, beta){
+      (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
+    }
+    if(substr(input$parameter, 1,3)!="bet"){
+      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+    }else{
+      mybetas <-c(input$H0, input$Ha)
     }
     
-  })
+    Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
+    
+  }
   
-  #output$EstimateNplot <- renderPlot({
-  #  if(!is.null(getEstimateN())){
-#
-#      if(FALSE){ x <- data.frame("N" = getEstimateN()$logit.N)
-#        }else{  x <- data.frame("N" = getEstimateN()$N) }
+  x <- HTML(paste("<li><strong>Overall observed event rate (due to censoring): Pr( T not censored) =", round(Pr.Nocens,3), "</strong></li>"))
+  x
+  
+})
 
-#      p <- ggplot(data = x, aes(x = N)) + geom_histogram()+theme_bw() + ggtitle("Estimated sample size needed")  
-#      print(p)
-#    }
-#  })
 
+output$NCCsamplesizeALL <- renderText({
+
+  a = -log(input$S.0)/input$t.0
+  
+  if(substr(input$parameter, 1,3)!="bet"){
+    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+  }else{
+    mybetas <-c(input$H0, input$Ha)
+  }
+  
+  
+  browser()
+  tmpDat <- SIM.data.singleMarker(nn = input$cohortN, 
+                                  beta = mybetas[2], 
+                                  lam0 = a, 
+                                  cens.perc = input$cens.perc/100, 
+                                  time.max = input$time.max, 
+                                  m.match = input$nmatch)   
+  
+  
+  subdata <- data.frame(tmpDat[[1]])
+  subdata <- subdata[subdata$vi==1,] 
+  
+  weights <- FNCC.WGT.FUN(tmpDat[[1]],
+                          V.IND = tmpDat[[2]], 
+                          Iik0 = tmpDat[[3]], 
+                          Zmatch.ind=NULL, 
+                          m.match = input$nmatch)
+    
+  trueW <- weights[subdata$di==0] 
+  
+  tmp1 <- with(subdata, sapply(xi[di==0], function(x) sum(x < xi[di==1])))
+  tmp2 <- with(subdata, sapply(xi[di==0], function(x) sum(x < xi)))
+  trueW[1:10]
+  (tmp1/tmp2)[1:10]
+  
+  tmpN = min( input$cohortN*(Pr.Nocens) + input$cohortN*(1-Pr.Nocens)*input$nmatch*tmp.prob, 
+              input$cohortN)
+  
+  
+  
+  
+  HTML(paste("<h3>", "Average total sample size under NCC design: <strong>", tmpN, "</strong></h3>", sep = ""))
+  
+})
+
+
+######
+## Render tables
+######
+
+
+
+output$NCCsamplesize <- renderTable({
+  
+  out = data.frame(cbind(c(1,2), c(3,4)))
+  
+  
+  
+  
+  names(out) <- c("NCC sample", "Cohort")
+  row.names(out) <- c("Controls", "Cases" )
+  
+  round(out)
+}, digits = 0)
+
+
+output$TrueValuesTable <- renderTable({
+  
+  a = -log(input$S.0)/input$t.0
+  
+  if(substr(input$parameter, 1,3)!="bet"){
+    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+  }else{
+    mybetas <-c(input$H0, input$Ha)
+  }
+  
+  
+  altauc <- get.AUC.given.beta.intmethod(mybetas[2], a, input$predict.time, f_x=dnorm )
+  alttpf <- TPF.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
+  altfpf <- FPF.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
+  altppv <- PPV.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
+  altnpv <- NPV.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
+  
+  nullauc <- get.AUC.given.beta.intmethod(mybetas[1], a, input$predict.time, f_x=dnorm )
+  nulltpf <- TPF.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
+  nullfpf <- FPF.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
+  nullppv <- PPV.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
+  nullnpv <- NPV.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
+  
+  mytable <- data.frame(rbind( c(round(abs(mybetas), 3)), 
+                               c(nullauc, altauc), 
+                               c(nulltpf, alttpf), 
+                               c(nullfpf, altfpf), 
+                               c(nullppv, altppv), 
+                               c(nullnpv, altnpv)))
+  names(mytable ) = c("Value under Null Hypothesis", "True Value")
+  
+  row.names(mytable) = c("β", "AUC", 
+                         paste("TPR(", input$cutoff ,")", sep = ""), 
+                         paste("FPR(", input$cutoff ,")", sep = ""),
+                         paste("PPV(", input$cutoff ,")", sep = ""), 
+                         paste("NPV(", input$cutoff ,")", sep = ""))
+  mytable
+})
+
+
+
+#### 
+## Render plots
+####
+ 
   output$DistributionPlot <- renderPlot({
     if(input$plotNow!=0){
      return(isolate(plotDistributions(parameter = substr(input$parameter, 1,3),
@@ -176,167 +365,33 @@ shinyServer(function(input, output) {
       }
   })
   
-  output$getEventRates <- renderText({
-    a = -log(input$S.0)/input$t.0
-    
-    my_fun <- function( Y,a, t, beta){
-     (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-    }
-    if(substr(input$parameter, 1,3)!="bet"){
-      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-    }else{
-      mybetas <-c(input$H0, input$Ha)
-    }
-    
-    Event.rate <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$predict.time, beta = mybetas[2] )$value
-    
-    if(input$censorType=="cens.perc") {
-      Pr.Nocens  = 1-input$cens.perc/100
-      out = Event.rate*Pr.Nocens 
-    }
-    else{
-
-      if(input$predict.time <= input$time.max) out = Event.rate
-      else out =integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-      
-    }
-    
-    x <- HTML(paste("<li><strong>Event rate at prediction time: Pr( T < prediction time & T not censored) =",  round(out, 3), "</strong></li>"))
-    x
-    
-  })
   
-  output$censoringPercentage <- renderText({
+ 
 
+
+#main plot for Simulation
+output$simulationGraphTop <- renderPlot({
+  if(!is.null(getSimulateN())){
     
-    
-    if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
-    else {
-      a = -log(input$S.0)/input$t.0
-      
-      my_fun <- function( Y,a, t, beta){
-        (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-      }
-      if(substr(input$parameter, 1,3)!="bet"){
-        mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-      }else{
-        mybetas <-c(input$H0, input$Ha)
-      }
-      
-      Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-      
-    }
-    
-    x <- HTML(paste("<li><strong>Overall observed event rate (due to censoring): Pr( T not censored) =", round(Pr.Nocens,3), "</strong></li>"))
-    x
-    
+    printResultPlot(getSimulateN(), pars= substr(input$parameter, 1,3), useLogit = FALSE)
+  }
 })
-  
- PrNocens <- reactive({
-   if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
-   else {
-     a = -log(input$S.0)/input$t.0
-     
-     my_fun <- function( Y,a, t, beta){
-       (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-     }
-     if(substr(input$parameter, 1,3)!="bet"){
-       mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-     }else{
-       mybetas <-c(input$H0, input$Ha)
-     }
-     
-     Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-     
-   }
-   
-   Pr.Nocens
-   
- })
- 
- output$NCCsamplesizeALL <- renderText({
-   
- tmpN <- 40
- 
 
-
-   HTML(paste("<h3>", "Average total sample size under NCC design: <strong>", tmpN, "</strong></h3>", sep = ""))
+output$simulationGraphSub <- renderPlot({
+  if(!is.null(getSimulateN())){
     
- })
- 
- 
- output$NCCsamplesize <- renderTable({
-     
-out = data.frame(cbind(c(1,2), c(3,4)))
-
-   names(out) <- c("NCC sample", "Cohort")
-   row.names(out) <- c("Controls", "Cases" )
-   
-   round(out)
- }, digits = 0)
- 
- 
-  output$TrueValuesTable <- renderTable({
-    
-    a = -log(input$S.0)/input$t.0
-    
-    if(substr(input$parameter, 1,3)!="bet"){
-      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-    }else{
-      mybetas <-c(input$H0, input$Ha)
-    }
+    if(getSimulateN()$ESTmethod=="SP") mypars = c( "beta", "AUC", "TPR", "FPR", "PPV", "NPV")
+    else mypars = c( "AUC", "TPR", "FPR", "PPV", "NPV")
     
     
-    altauc <- get.AUC.given.beta.intmethod(mybetas[2], a, input$predict.time, f_x=dnorm )
-    alttpf <- TPF.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
-    altfpf <- FPF.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
-    altppv <- PPV.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
-    altnpv <- NPV.fun(input$cutoff, mybetas[2], a, input$predict.time ,f_x =dnorm)
-    
-    nullauc <- get.AUC.given.beta.intmethod(mybetas[1], a, input$predict.time, f_x=dnorm )
-    nulltpf <- TPF.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
-    nullfpf <- FPF.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
-    nullppv <- PPV.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
-    nullnpv <- NPV.fun(input$cutoff, mybetas[1], a, input$predict.time ,f_x =dnorm)
-    
-    mytable <- data.frame(rbind( c(round(abs(mybetas), 3)), 
-                      c(nullauc, altauc), 
-                      c(nulltpf, alttpf), 
-                      c(nullfpf, altfpf), 
-                      c(nullppv, altppv), 
-                      c(nullnpv, altnpv)))
-    names(mytable ) = c("Value under Null Hypothesis", "True Value")
-    
-    row.names(mytable) = c("β", "AUC", 
-                           paste("TPR(", input$cutoff ,")", sep = ""), 
-                           paste("FPR(", input$cutoff ,")", sep = ""),
-                           paste("PPV(", input$cutoff ,")", sep = ""), 
-                           paste("NPV(", input$cutoff ,")", sep = ""))
-    mytable
-  })
-  #main plot for Simulation
-  output$simulationGraphTop <- renderPlot({
-    if(!is.null(getSimulateN())){
-
-      printResultPlot(getSimulateN(), pars= substr(input$parameter, 1,3), useLogit = FALSE)
-       }
-    })
-  
-  output$simulationGraphSub <- renderPlot({
-    if(!is.null(getSimulateN())){
-      
-      if(getSimulateN()$ESTmethod=="SP") mypars = c( "beta", "AUC", "TPR", "FPR", "PPV", "NPV")
-      else mypars = c( "AUC", "TPR", "FPR", "PPV", "NPV")
-
-
-      mypars = mypars[mypars!=substr(input$parameter, 1,3)]
-      if(length(mypars)>0){
+    mypars = mypars[mypars!=substr(input$parameter, 1,3)]
+    if(length(mypars)>0){
       printResultPlot(getSimulateN(), pars= mypars, useLogit = FALSE)
-      }else{ return()}
-       
-   }
-  })
- 
+    }else{ return()}
+    
+  }
+})
+
   
   
   

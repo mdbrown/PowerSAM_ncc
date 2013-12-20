@@ -23,7 +23,7 @@ getEstandSE_SP <- function(
   mydata.ncc = data[[1]];
   Vij.IND = data[[2]]; 
   Iik0.mat = data[[3]]
-  B0 = 250
+  B0 = 200
   junk=NCC.Cox.explicit.PTB.s.y(data = mydata.ncc,
                                 V.IND = Vij.IND,
                                 Iik0 = Iik0.mat,
@@ -47,9 +47,9 @@ getEstandSE_SP <- function(
   
   est <- c(junk$beta.est, colMeans(Ptb.result, na.rm = TRUE))
   se  <- c(junk$beta.sd,apply(Ptb.result,2,sd))
-  
-  est <- as.data.frame(t(est)); names(est) =c("coef", "AUC", "FPR","TPR","PPV","NPV")
-  se <- as.data.frame(t(se)); names(se) =c("coef", "AUC", "FPR","TPR","PPV","NPV")
+
+  est <- as.data.frame(t(est)); names(est) =c("coef", "AUC", "FPR","TPR","NPV","PPV")
+  se <- as.data.frame(t(se)); names(se) =c("coef", "AUC", "FPR","TPR", "NPV","PPV")
   
   list(estimates = unlist(est),se =se) 
      

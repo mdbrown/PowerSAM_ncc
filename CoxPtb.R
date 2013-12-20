@@ -233,7 +233,7 @@ Ptb.ROC.FUN <- function(ck,CondSck,Fck,uu0,type, yk)
     accuracy.out = data.frame("cutoff"=yk,"FPR"=FPR.c,"TPR"=TPR.c,"NPV"=NPV.c,"PPV"=PPV.c)
     junk = accuracy.out;
     
-    ind0 = match(type,c("cutoff", "FPR","TPR","PPV","NPV")); 
+    ind0 = match(type,c("cutoff", "FPR","TPR","NPV","PPV")); 
     uuk = junk[,ind0]; junk = junk[order(uuk),-ind0]; uuk = sort(uuk); 
     tmpind = NULL; 
     for(i in 1:length(uu0)) {
@@ -333,13 +333,18 @@ SIM.data.singleMarker <- function(nn=5000,
     IND.ik = matrix(NA,nrow=sum(di),ncol=m.match+1) ## id of cases and the corresponding controls
     Iik0 = matrix(0,nrow=sum(di),ncol=nn-sum(di))  ## indicates whether xk is in the matched risk set for ti
     for(l in 1:sum(di)){
-        tmpind = ind.case[l]; risksetind = xi>xi[tmpind];  IND.ik[l,1]=tmpind;  
+        tmpind = ind.case[l]; 
+        risksetind = xi>xi[tmpind];  
+        IND.ik[l,1]=tmpind;  
         ## =========================================================================== ##
         ## if matching, additional constraint of |Zi - Zl| <= a0 needs to be satisfied ##
         ## =========================================================================== ##
        
-		Iik0[l,] = 1*risksetind[di==0]
-        risksetind = (1:nn)[risksetind]; nl = length(risksetind);nivec[l]=nl;tivec[l]=ti[tmpind];  
+		    Iik0[l,] = 1*risksetind[di==0]
+        risksetind = (1:nn)[risksetind]; 
+        nl = length(risksetind);
+        nivec[l] = nl;
+        tivec[l] = ti[tmpind];  
         ## =========================================================================== ##
         ## if riskset is empty, no control would be selected                           ##
         ## if riskset size < m.match, only select # of available for Finite Population ##

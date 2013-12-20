@@ -53,29 +53,14 @@ SimulateN <- function(N, parameter, S.0, t.0,
                                       predict.time = predict.time, 
                                       nmatch = nmatch)
 
-      SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,2,4,3,5,6)] #change order to match up estimate names
+      SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,2,4,3,6,5)] #change order to match up estimate names
     
-      EST[i,] <- unlist(estimates_ncc$est)[c(1,2,4,3,5,6)]
+      EST[i,] <- unlist(estimates_ncc$est)[c(1,2,4,3,6,5)]
       N_ncc[i] <-sum(tmpDat[[1]][,3]) # adding up across vi
       
     }else{
-      stop("no support for non parametric estimation as of now")
-     # cN = min(sum(tmpDat_ncc$vi), 100)
       
-      estimates_ncc <- getEstimatesNP( 
-                                   data =tmpDat_ncc, 
-                                   cutpoint = cutoff,
-                                   measures = c("AUC", "TPR", "FPR" , "PPV", "NPV"), 
-                                   predict.time = predict.time, 
-                                   CalVar=TRUE, 
-                                   subcohort = TRUE)
-
-      SE_ncc[i,] <- unlist(estimates_ncc$se[1,])
-    
-      EST[i,] <- unlist(estimates_ncc$estimates)
-
-      N_ncc[i] <- sum(tmpDat_ncc$vi) 
-      
+      stop("no support for non parametric estimation as of now")  
       
     }   
     
@@ -84,7 +69,7 @@ SimulateN <- function(N, parameter, S.0, t.0,
   }
    
    
-   browser()
+
    SE_ncc <- as.data.frame(SE_ncc);
  
    EST <- as.data.frame(EST)

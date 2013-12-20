@@ -7,24 +7,22 @@ expit = function(x) exp(x)/(1+exp(x))
 #############################
 
 printResultPlot <- function(simNobj, pars, useLogit = FALSE){
- # dev.off()
+  # dev.off()
   index = 0;
-
+  
   #open up the plot device
-  pushViewport(viewport(layout = grid.layout(length(pars)+1,3, heights = unit(c(3,rep(10, length(pars))), "null"),
-                                             widths = unit(c(1,1.2, 1), "null")), gp = gpar(fontsize = 15)))
-  grid.rect(x=0.5, y = 0.5, height = 1, width = 1, gp = gpar(fill = "#ebebeb", col = "#ebebeb"), vp = viewport(layout.pos.row = 1:(length(pars)+1), layout.pos.col = 3))
-
-  grid.rect(x=0.5, y = 0.5, height = 1, width = 1, gp = gpar(fill = "#ebebeb", col = "#ebebeb"), vp = viewport(layout.pos.row = 1:(length(pars)+1), layout.pos.col = 1))
- 
+  pushViewport(viewport(layout = grid.layout(length(pars)+1,4, heights = unit(c(ifelse(length(pars)==1,3, 3),rep(10, length(pars))), "null"),
+                                             widths = unit(c(1,1,1,2.5), "null")), gp = gpar(fontsize = 15)))
+  
   grid.text("Measure \n (true value)", y = .6, vp=viewport(layout.pos.row = 1, layout.pos.col = 1))
-  grid.text("Hypothesis \nTest",y = .5, x = .1, just = c("left", "center"), vp=viewport(layout.pos.row = 1, layout.pos.col = 2))
-  grid.text("NCC \nPower (%)", x = .5,  y = .5,vp=viewport(layout.pos.row = 1, layout.pos.col = 3))
-  grid.lines(c(0,1), c(0.05,0.05), gp = gpar(col = "darkgrey"), vp = viewport(layout.pos.row = 1, layout.pos.col = 1:3))
-
+  grid.text("Hypothesis Test",y = .5, x = 0, just = c("left", "center"), vp=viewport(layout.pos.row = 1, layout.pos.col = 2))
+  grid.text("Power (%)",y = .5, vp=viewport(layout.pos.row = 1, layout.pos.col = 3))
+  grid.text("Simulated Distribution", x = .4,  y = .5,vp=viewport(layout.pos.row = 1, layout.pos.col = 4))
+  grid.lines(c(0,1), c(0.05,0.05), gp = gpar(col = "darkgrey"), vp = viewport(layout.pos.row = 1, layout.pos.col = 1:4))
+  
   for(par in pars){
     index = index + 1; 
-
+    
     #find the true values of the par
     if(par != "beta"){
       parTrue <- get.parameter.range(par, 
@@ -38,20 +36,44 @@ printResultPlot <- function(simNobj, pars, useLogit = FALSE){
       parTrue = round(c(simNobj$beta.H0, simNobj$beta.Ha), 2)
     }
     #prepare the data
-  
     if(useLogit){
       x <- simNobj[[par]]
-      x <- cbind(x$est, x$logit.power_cch, (x$se_cch)/(x$est*(1-x$est)) )
+      x <- cbind(x$est, x$logit.power_ncc)
     }else{
       x <- simNobj[[par]]
-      x <- cbind(x$est, x$power_cch,  x$se_cch)
+      x <- cbind(x$est, x$power_ncc)
     }
     x<-as.data.frame(x)
-    names(x) = c("estimate", "reject_ncc",  "se_ncc")
+    names(x) = c("estimate", "reject")
     
-
-    grid.text(parse(text = par), x = .5, y = .5, vp = viewport(layout.pos.row =index + 1, layout.pos.col = 1), gp = gpar(fontsize = 50))
-    grid.text(paste("(=", round(parTrue[2], 2), ")"), x = .5, y = .25, vp =viewport(layout.pos.row = index+1, layout.pos.col = 1), gp = gpar(col = "#9e66ab", fontsize = 20, fontface = 2) )
+    #the ggplot histogram
+    
+    p <- ggplot(aes(estimate, fill = factor(reject)), data = x)
+    p = p + geom_histogram(binwidth = diff(range(x$estimate, na.rm=TRUE))/30) + theme(
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.border = element_blank(),
+      panel.background = element_blank()
+    ) 
+    
+    if(mean(x$reject, na.rm = TRUE)==1){
+      #all reject 
+      mycolors = c("#599ad3","#f9a65a")
+    }else if(mean(x$reject, na.rm = TRUE)==0){
+      #none reject
+      mycolors = c("#f9a65a", "#599ad3")
+    }else{
+      mycolors <- c("#f9a65a", "#599ad3")
+    }
+    p = p + xlab("point estimate") + 
+      scale_fill_manual(name = "test \nconclusion",
+                        breaks = c("0", "1"), 
+                        labels = c("fail to \nreject", "reject"),
+                        values =  mycolors)
+    p = p + geom_vline(xintercept = parTrue[2], size = 1.5, color ="#9e66ab")
+    
+    grid.text(parse(text = par), x = .5, y = .5, vp = viewport(layout.pos.row =index + 1, layout.pos.col = 1), gp = gpar(fontsize = 40))
+    grid.text(paste("(=", round(parTrue[2], 2), ")"), x = .5, y = .3, vp =viewport(layout.pos.row = index+1, layout.pos.col = 1), gp = gpar(col = "#9e66ab", fontsize = 20, fontface = 2) )
     if(is.element(par, c("TPR", "FPR", "PPV", "NPV"))) par = paste(par, "(c)")
     
     tmp <- eval(substitute(paste("H[0]:",  mypar, myparsign, myparval),
@@ -64,9 +86,11 @@ printResultPlot <- function(simNobj, pars, useLogit = FALSE){
     grid.text(parse(text = tmp), just = c("left", "center"), x = .05, y = .45, vp = viewport(layout.pos.row = index+1, layout.pos.col = 2))
     
     
- grid.text(paste(round(mean(x$reject_ncc, na.rm = TRUE), 2)*100), x = .5, y = .5,  gp = gpar(fontsize = 50, col = "#599ad3"), vp = viewport(layout.pos.row = index+1, layout.pos.col = 3))
-
-    grid.lines(c(0,1), c(0.01,0.01), gp = gpar(col = "darkgrey"), vp = viewport(layout.pos.row = index+1, layout.pos.col = 1:3))
+    grid.text(paste(round(mean(x$reject, na.rm = TRUE), 2)*100), x = .5, y = .5,  gp = gpar(fontsize = 50, col = "#599ad3"), vp = viewport(layout.pos.row = index+1, layout.pos.col = 3))
+    
+    
+    print(p, vp = viewport(layout.pos.row =index+1, layout.pos.col = 4))
+    grid.lines(c(0,1), c(0.01,0.01), gp = gpar(col = "darkgrey"), vp = viewport(layout.pos.row = index+1, layout.pos.col = 1:4))
     
     
     
@@ -471,5 +495,8 @@ PPV.fun <- function(c, beta, a, t, f_x){
   num/den
 
 }
+
+
+
 
 
