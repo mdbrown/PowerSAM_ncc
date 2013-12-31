@@ -24,7 +24,7 @@ shinyUI(pageWithSidebarNavbar(
     ),
     wellPanel(
      selectInput("ESTmethod", "Estimation Method:", 
-                 choices = c( "Semi-parametric" = "SP")), 
+                 choices = c( "Non-parametric" = "NP", "Semi-parametric" = "SP")), 
      p("note: Non-parametric estimation methods will be added soon")
     ),
     wellPanel(p("Model Parameters:"),

@@ -2,7 +2,26 @@
 
 1. Using the tab "Model Characteristics" to guide your decisions, choose the accuracy measure you wish to compute sample size for. Specify the marker cutpoint (if needed), the baseline hazard, and other parameters, including the expected value of the measure, and the hypothesis test you wish to calculate power for.
 
-2. Under the "Set Sample Size" tab, choose the type of case-cohort sampling, and set the cohort and subcohort sample sizes. 
+2. Under the "Set Sample Size" tab set the cohort and subcohort sample sizes. 
 
-3. Navigate to the "Simulate Power" tab to run simulations to learn how studies with the specified sample size perform with respect to your measure of interest and other measures. 
+3. Navigate to the "Simulate Power" tab to run simulations to learn how studies with the specified sample size perform with respect to your measure of interest and other summary measures. 
+
+To speed up computation time, which can be long for larger samples using these methods, download and run the app on your local machine by opening an [R](http://www.r-project.org/) console and typing:
+
+```r
+#install package shiny
+if (!require("shiny")) install.packages("shiny")
+
+#install devtools so we can install shinyIncubator
+if(!require("devtools")) install.packages("devtools")
+if(!require("shinyIncubator")) devtools::install_github("shiny-incubator", "rstudio")
+
+
+#now run the app locally using
+runGitHub("PowerSAM_ncc", "mdbrown")
+
+
+#click 'stop' or ESC to terminate the app
+
+```
 

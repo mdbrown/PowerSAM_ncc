@@ -14,7 +14,7 @@ SimulateN <- function(N, parameter, S.0, t.0,
                              useLog = TRUE, 
                              time.max = NULL,
                              censorType = "cens.perc", 
-                             type, nmatch = 3){
+                              nmatch = 3){
    a = -log(S.0)/t.0
    if(censorType=="cens.perc") time.max = NULL
    
@@ -60,7 +60,15 @@ SimulateN <- function(N, parameter, S.0, t.0,
       
     }else{
       
-      stop("no support for non parametric estimation as of now")  
+      estimates_ncc <- getEstandSE_NP(data =tmpDat, 
+                                      cutpoint = cutoff,
+                                      predict.time = predict.time, 
+                                      nmatch = nmatch)
+      
+      SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,2,4,3,6,5)] #change order to match up estimate names
+      
+      EST[i,] <- unlist(estimates_ncc$est)[c(1,2,4,3,6,5)]
+      N_ncc[i] <-sum(tmpDat[[1]][,3]) # adding up across vi
       
     }   
     
@@ -136,7 +144,7 @@ SimulateN <- function(N, parameter, S.0, t.0,
    out$a = a; 
   out$predict.time = predict.time; out$cutoff = cutoff; 
   out$N = N;out$N_ncc <- N_ncc;
-   out$type = type; 
+
    out$ESTmethod  <- ESTmethod; 
    out
 }

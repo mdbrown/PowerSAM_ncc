@@ -497,6 +497,8 @@ PPV.fun <- function(c, beta, a, t, f_x){
 }
 
 
+### get estimated sample sizes given a cohort
+
 
 
 

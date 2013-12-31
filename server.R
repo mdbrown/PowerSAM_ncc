@@ -13,6 +13,7 @@ source("main.R")
 source("subroutines.R")
 source("Estimation.R")
 source("CoxPtb.R")
+source("NP-kn-Ptb.R")
 
 # Define server logic required to summarize and view the selected dataset
 shinyServer(function(input, output) {
@@ -31,6 +32,34 @@ shinyServer(function(input, output) {
 ## Reactive Functions
 #####
   
+## 
+getSampleSizes <- reactive({
+      
+      a = -log(input$S.0)/input$t.0
+      
+      if(substr(input$parameter, 1,3)!="bet"){
+        mybetas <- get.Betas(substr(input$parameter, 1,3), 
+                             a, 
+                             input$predict.time, 
+                             cutoff = input$cutoff, 
+                             input$H0, input$Ha)
+      }else{
+        mybetas <-c(input$H0, input$Ha)
+      }
+      
+      
+      tmpDat <- data.frame(SIM.data.singleMarker(nn = input$cohortN, 
+                                      beta = mybetas[2], 
+                                      lam0 = a, 
+                                      cens.perc = input$cens.perc/100, 
+                                      time.max = input$time.max, 
+                                      m.match = input$nmatch)[[1]])
+
+      out <- with(tmpDat, table(vi, di))
+      out
+})
+
+
    # simulate power for a given sample size
  getSimulateN <- reactive({
     if(input$runSim!=0){
@@ -50,7 +79,6 @@ shinyServer(function(input, output) {
              alpha = input$alpha, 
              cens.perc = input$cens.perc/100, 
              time.end = NULL, time.max = input$time.max, censorType= input$censorType,
-             type = input$typeOfStudy, 
              nmatch = input$nmatch)
      })
     
@@ -224,48 +252,9 @@ output$censoringPercentage <- renderText({
 
 
 output$NCCsamplesizeALL <- renderText({
+  
 
-  a = -log(input$S.0)/input$t.0
-  
-  if(substr(input$parameter, 1,3)!="bet"){
-    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-  }else{
-    mybetas <-c(input$H0, input$Ha)
-  }
-  
-  
-  browser()
-  tmpDat <- SIM.data.singleMarker(nn = input$cohortN, 
-                                  beta = mybetas[2], 
-                                  lam0 = a, 
-                                  cens.perc = input$cens.perc/100, 
-                                  time.max = input$time.max, 
-                                  m.match = input$nmatch)   
-  
-  
-  subdata <- data.frame(tmpDat[[1]])
-  subdata <- subdata[subdata$vi==1,] 
-  
-  weights <- FNCC.WGT.FUN(tmpDat[[1]],
-                          V.IND = tmpDat[[2]], 
-                          Iik0 = tmpDat[[3]], 
-                          Zmatch.ind=NULL, 
-                          m.match = input$nmatch)
-    
-  trueW <- weights[subdata$di==0] 
-  
-  tmp1 <- with(subdata, sapply(xi[di==0], function(x) sum(x < xi[di==1])))
-  tmp2 <- with(subdata, sapply(xi[di==0], function(x) sum(x < xi)))
-  trueW[1:10]
-  (tmp1/tmp2)[1:10]
-  
-  tmpN = min( input$cohortN*(Pr.Nocens) + input$cohortN*(1-Pr.Nocens)*input$nmatch*tmp.prob, 
-              input$cohortN)
-  
-  
-  
-  
-  HTML(paste("<h3>", "Average total sample size under NCC design: <strong>", tmpN, "</strong></h3>", sep = ""))
+  HTML(paste("<p>", "A simulated data set with the input parameters provided had NCC sample size of: <strong>", sum(getSampleSizes()[2,]), " observations</strong></p>", sep = ""))
   
 })
 
@@ -278,15 +267,18 @@ output$NCCsamplesizeALL <- renderText({
 
 output$NCCsamplesize <- renderTable({
   
-  out = data.frame(cbind(c(1,2), c(3,4)))
+  out = matrix(0, nrow = 2, ncol = 2)
+  out[,1] = getSampleSizes()[2,]
+  out[,2] = getSampleSizes()[1,] + getSampleSizes()[2,]
   
+  out <- as.data.frame(out)
   
   
   
   names(out) <- c("NCC sample", "Cohort")
   row.names(out) <- c("Controls", "Cases" )
   
-  round(out)
+  out
 }, digits = 0)
 
 
