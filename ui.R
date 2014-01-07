@@ -117,7 +117,7 @@ shinyUI(pageWithSidebarNavbar(
       
       tabPanel("Simulate Power", 
 
-               p("This simulation can take from a few seconds to several minutes to run. For semiparametric estimates, running at the largest settings of 1,000 simulations with a sample size of 2,500 takes roughly 20+ minutes to complete, while running 100 simulations at sample size 500 takes approximately 30 seconds. The computation time for nonparametric estimates is even higher. It is highly recommended to run this app from your local machine for larger simulations. See tab 'Instructions' for help."), 
+               p("This simulation takes many minutes to run (20+ minutes for cohort sample sizes > 500). Semiparametric estimation takes less computation time on average than nonparametric estimation. It is highly recommended to run this app from your local machine for larger simulations. See tab 'Instructions' for help doing this."), 
                wellPanel(
                  numericInput("mmSim", "# of Simulations to Run (enter a value between 10 and 1,000)", value = 100, step = 50, min = 10, max = 1000),
                  actionButton(inputId = "runSim", "Run Simulation")

@@ -78,13 +78,15 @@ NCC.NP.kn.PTB.s.y <- function(data,V.IND,Iik0=Iik0.mat,wgtk.ptb=NULL,B0=500,Zmat
        CondSck = Shat.yk,
        CondSck.ptb = Shat.yk.ptb, 
        Fck = Fyk,
-       Fck.ptb = Fyk.ptb)
+       Fck.ptb = Fyk.ptb, 
+       yk = yk.old)
     } else{ 
       list(ck =yk, 
            CondSck = Shat.yk,
            CondSck.ptb = Shat.yk.ptb, 
            Fck = Fyk,
-           Fck.ptb = Fyk.ptb)  }
+           Fck.ptb = Fyk.ptb, 
+           yk = yk.old)  }
 }
  
 

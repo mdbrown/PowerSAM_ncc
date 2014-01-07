@@ -230,6 +230,7 @@ Ptb.ROC.FUN <- function(ck,CondSck,Fck,uu0,type, yk)
     NPV.c = St0.Fck/Fck           ## P(T> t0|Y<=ck)
     PPV.c = (Ft0-Ft0.Fck)/(1-Fck) ## P(T<=t0|Y> ck)
     AUC = sum(TPR.c*(FPR.c-c(FPR.c[-1],0)))
+
     accuracy.out = data.frame("cutoff"=yk,"FPR"=FPR.c,"TPR"=TPR.c,"NPV"=NPV.c,"PPV"=PPV.c)
     junk = accuracy.out;
     

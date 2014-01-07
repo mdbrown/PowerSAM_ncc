@@ -65,9 +65,10 @@ SimulateN <- function(N, parameter, S.0, t.0,
                                       predict.time = predict.time, 
                                       nmatch = nmatch)
       
-      SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,2,4,3,6,5)] #change order to match up estimate names
       
-      EST[i,] <- unlist(estimates_ncc$est)[c(1,2,4,3,6,5)]
+      SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,3,2,5,4)] #change order to match up estimate names
+      
+      EST[i,] <- unlist(estimates_ncc$est)[c(1,3,2,5,4)]
       N_ncc[i] <-sum(tmpDat[[1]][,3]) # adding up across vi
       
     }   

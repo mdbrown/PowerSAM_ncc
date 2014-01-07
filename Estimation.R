@@ -64,7 +64,7 @@ getEstandSE_NP <- function(
   nmatch)
 {  
   
-    browser()
+    #browser()
   
   # N = nrow(data)
   #data$vi = 1; data$wi = 1
@@ -94,12 +94,11 @@ getEstandSE_NP <- function(
                                          junk$yk))
   }
   
+  est <- c(colMeans(Ptb.result, na.rm = TRUE))
+  se  <- c(apply(Ptb.result,2,sd))
   
-  est <- c(junk$beta.est, colMeans(Ptb.result, na.rm = TRUE))
-  se  <- c(junk$beta.sd,apply(Ptb.result,2,sd))
-  
-  est <- as.data.frame(t(est)); names(est) =c("coef", "AUC", "FPR","TPR","NPV","PPV")
-  se <- as.data.frame(t(se)); names(se) =c("coef", "AUC", "FPR","TPR", "NPV","PPV")
+  est <- as.data.frame(t(est)); names(est) =c( "AUC", "FPR","TPR","NPV","PPV")
+  se <- as.data.frame(t(se)); names(se) =c( "AUC", "FPR","TPR", "NPV","PPV")
   
   list(estimates = unlist(est),se =se) 
   
