@@ -71,23 +71,6 @@ Estimates for all measures can be calculated via non-parametric or semi-parametr
  This app was built using [R](http://www.r-project.org/) and [Shiny](http://www.rstudio.com/shiny/). Please direct any questions to mdbrown@fhcrc.org. 
 
 
-1.     Cai T. and Zheng Y. Resampling Procedures for Making Inference under Nested Case-control Studies. JASA. 2013 (in press). (attached, may not be final version)
-
- 
-
-1.     Cai T and Zheng Y, Non-parametric evaluation of biomarker accuracy under nested case-control studies. JASA. 2011, 106(494): 569-580.  
-
-
-
-References for semi-parametric: coxptb
-
-1.     Cai T. and Zheng Y. Resampling Procedures for Making Inference under Nested Case-control Studies. JASA. 2013 (in press).
-
- 
-
-1.     Cai T and Zheng Y*, Evaluating Prognostic Accuracy of Biomarkers under nested case-control studies. Biostatistics 2012, 13,1, 89-100. (* equal contributor and corresponding author).
-
-
 
 
 
