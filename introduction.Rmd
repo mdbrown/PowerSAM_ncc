@@ -48,9 +48,7 @@ For a continuous marker measured at baseline, $Y$, a cutpoint $c$ must be specif
 
 ### Estimation
 
-Estimates for all measures are calculated via semiparametric methods assuming a proportional hazards model and use perturbation methods to account for the nested case-control design. An R package that implements the estimation procedures used in this application is available [**here**](http://mdbrown.github.io/survMarkerTwoPhase/). Please see the referenced papers for detailed information regarding estimation. 
-
-***Note: Non-parametric estimation methods will be added shortly!***
+Estimates for all measures can be calculated via non-parametric or semi-parametric methods.Semiparametric methods assume a proportional hazards model, while non-parametric estimation uses kernel smoothing. Both methods use perturbation methods to account for the nested case-control design. An R package that implements the estimation procedures used in this application is available [**here**](http://mdbrown.github.io/survMarkerTwoPhase/). Please see the referenced papers for detailed information regarding estimation. 
 
 ### Resources
 

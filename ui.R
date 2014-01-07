@@ -24,8 +24,7 @@ shinyUI(pageWithSidebarNavbar(
     ),
     wellPanel(
      selectInput("ESTmethod", "Estimation Method:", 
-                 choices = c( "Non-parametric" = "NP", "Semi-parametric" = "SP")), 
-     p("note: Non-parametric estimation methods will be added soon")
+                 choices = c( "Non-parametric" = "NP", "Semi-parametric" = "SP"))
     ),
     wellPanel(p("Model Parameters:"),
               numericInput("S.0", label = HTML("Baseline Survival at time t<sub>0</sub>: S(t<sub>0</sub>|Y=0)"), value = round(exp(-.1), 3), min = .01, max = .99, step = .01),
