@@ -29,7 +29,7 @@ $$
 S_0(t) = e^{-at}
 $$
 
-The value for $a$ is determined by the inputs for baseline survival at time t $S_0(t)$ for a given time $t$, and the value for $\beta$ is determined by the expected value of the accuracy measure of interest. 
+The value for $a$ is determined by the inputs for baseline survival $S_0(t_0)$ for a given time $t_0$, and the value for $\beta$ is determined by the expected value of the accuracy measure of interest. 
 
 * Censoring: We assume non-informative censoring.  
 
