@@ -1,8 +1,8 @@
 PowerSAM_ncc
 ==============
 
-simulate power for risk prediction accuracy measures for time-to-event data under nested case control design. 
-The application can be found [here](http://glimmer.rstudio.com/mdbrown/PowerSAM_ncc/), or, if you would rather run it locally on your machine use:
+Simulate power for prognostic biomarker validation studies with time-to-event data under nested case control design. 
+The application can be found [here](http://mdbrown.shinyapps.io/PowerSAM_ncc/), or, if you would rather run it locally on your machine use:
 
 ```r
 #install package shiny

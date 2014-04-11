@@ -8,7 +8,7 @@ shinyUI(pageWithSidebarNavbar(
  headerPanel(
     
     tags$body(
-      h2("Power calculations for prognostic accuracy measures with survival data"), 
+      h2("Power calculations for prognostic biomarker validation studies with time to event data"), 
       h3(HTML("  &nbsp;&nbsp;<FONT COLOR=\"#f89406\"><em>Nested Case-Control study design</em></FONT>")) 
     ),
     windowTitle = "Power calculations for prognostic accuracy measures"
@@ -87,7 +87,7 @@ shinyUI(pageWithSidebarNavbar(
                htmlOutput("censoringPercentage"),
                br(),
                h3("Performance"),
-               p(HTML("Given the inputs received, the table below shows the true value for each measure, including β, the coefficient in the Cox-Proportional hazards model. Also shown are the values of all measures under H<sub>0</sub>.
+               p(HTML("Given the inputs received, the table below shows the true value for each measure, including ??, the coefficient in the Cox-Proportional hazards model. Also shown are the values of all measures under H<sub>0</sub>.
                  The figure below shows the true receiver operating characteristic (ROC) curve, along with the curve under the null hypothesis. In addition, curves for PPV(c) and NPV(c) are shown with respect to marker quantile. The chosen cutpoint is highlighted on each curve.")),
                div(class="row",
                div(class ="span1", br()),
