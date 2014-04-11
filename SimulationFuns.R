@@ -1,5 +1,5 @@
 
-SimulateN <- function(N, parameter, S.0, t.0,
+PowerSim <- function(N, parameter, S.0, t.0,
                              cutoff=NULL, 
                              predict.time,
                              parval.H0, 
@@ -9,15 +9,10 @@ SimulateN <- function(N, parameter, S.0, t.0,
                              F_xInv = qnorm, 
                              mm = 5,  
                              alpha = 0.05, 
-                             cens.perc = .2, 
-                             time.end = NULL,
-                             useLog = TRUE, 
+                             cens.lam = .2, 
                              time.max = NULL,
-                             censorType = "cens.perc", 
                               nmatch = 3){
    a = -log(S.0)/t.0
-   if(censorType=="cens.perc") time.max = NULL
-   
 
   mybetas <- get.Betas(parameter, a, predict.time, cutoff, parval.H0, parval.Ha)
   beta.H0 <- mybetas[1]
@@ -38,37 +33,37 @@ SimulateN <- function(N, parameter, S.0, t.0,
     tmpDat <- SIM.data.singleMarker(nn = N, 
                                     beta = beta.Ha, 
                                     lam0 = a, 
-                                    cens.perc = cens.perc, 
+                                    cens.lam = cens.lam, 
                                     time.max = time.max, 
                                     m.match = nmatch) 
+    tmpDat$data$id <- 1:N
     
-    
-    
+    estimates_ncc <- survMTP.ncc(time = xi,
+                                 event = di, 
+                                 marker = yi, 
+                                 subcoh = vi, 
+                                 id = id, 
+                                 data = tmpDat$data, 
+                                 sets = tmpDat$Vi.k0.IND[,-c(1:2)], 
+                                 predict.time = predict.time, 
+                                 marker.cutpoint = cutoff, 
+                                 estimation.method = ESTmethod, 
+                                 Npert = 200)
     
 
     if(ESTmethod == "SP"){ 
 
-      estimates_ncc <- getEstandSE_SP(data =tmpDat, 
-                                      cutpoint = cutoff,
-                                      predict.time = predict.time, 
-                                      nmatch = nmatch)
-
       SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,2,4,3,6,5)] #change order to match up estimate names
     
-      EST[i,] <- unlist(estimates_ncc$est)[c(1,2,4,3,6,5)]
+      EST[i,] <- unlist(estimates_ncc$estimates)[c(1,2,4,3,6,5)]
       N_ncc[i] <-sum(tmpDat[[1]][,3]) # adding up across vi
       
     }else{
       
-      estimates_ncc <- getEstandSE_NP(data =tmpDat, 
-                                      cutpoint = cutoff,
-                                      predict.time = predict.time, 
-                                      nmatch = nmatch)
-      
-      
+           
       SE_ncc[i,] <- unlist(estimates_ncc$se)[c(1,3,2,5,4)] #change order to match up estimate names
       
-      EST[i,] <- unlist(estimates_ncc$est)[c(1,3,2,5,4)]
+      EST[i,] <- unlist(estimates_ncc$estimates)[c(1,3,2,5,4)]
       N_ncc[i] <-sum(tmpDat[[1]][,3]) # adding up across vi
       
     }   

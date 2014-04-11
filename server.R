@@ -2,18 +2,16 @@ require(shiny)
 require(survival)
 require(ggplot2)
 require(shinyIncubator)
-
+require(survMarkerTwoPhase)
 
 
 require(grid)
 require(RColorBrewer)
 #options(markdown.HTML.options=c('fragment_only','base64_images'))
-source("global.R")
-source("main.R")
+
+source("SimulationFuns.R")
 source("subroutines.R")
-source("Estimation.R")
-source("CoxPtb.R")
-source("NP-kn-Ptb.R")
+
 
 # Define server logic required to summarize and view the selected dataset
 shinyServer(function(input, output) {
@@ -33,6 +31,19 @@ shinyServer(function(input, output) {
 #####
   
 ## 
+getBetas <- reactive({
+  a = -log(input$S.0)/input$t.0
+  
+  
+  if(substr(input$parameter, 1,3)!="bet"){
+    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
+  }else{
+    mybetas <-c(input$H0, input$Ha)
+  }
+  
+  mybetas
+  
+})
 getSampleSizes <- reactive({
       
       a = -log(input$S.0)/input$t.0
@@ -47,11 +58,11 @@ getSampleSizes <- reactive({
         mybetas <-c(input$H0, input$Ha)
       }
       
-      
+      Lam = getLam()
       tmpDat <- data.frame(SIM.data.singleMarker(nn = input$cohortN, 
                                       beta = mybetas[2], 
                                       lam0 = a, 
-                                      cens.perc = input$cens.perc/100, 
+                                      cens.lam = Lam, 
                                       time.max = input$time.max, 
                                       m.match = input$nmatch)[[1]])
 
@@ -61,10 +72,10 @@ getSampleSizes <- reactive({
 
 
    # simulate power for a given sample size
- getSimulateN <- reactive({
+ getPowerSim <- reactive({
     if(input$runSim!=0){
-
-     isolate({ SimulateN(N = input$cohortN,
+      myLam = getLam()
+     isolate({ PowerSim(N = input$cohortN,
              parameter= substr(input$parameter, 1, 3),
              S.0 = input$S.0, 
              t.0 = input$t.0,
@@ -77,8 +88,8 @@ getSampleSizes <- reactive({
              F_xInv = qnorm,    
              mm = input$mmSim,  
              alpha = input$alpha, 
-             cens.perc = input$cens.perc/100, 
-             time.end = NULL, time.max = input$time.max, censorType= input$censorType,
+             cens.lam = myLam, 
+             time.max = input$time.max,
              nmatch = input$nmatch)
      })
     
@@ -99,46 +110,58 @@ getSampleSizes <- reactive({
  
   
 
-PrNocens <- reactive({
-  if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
-  else {
-    a = -log(input$S.0)/input$t.0
-    
-    my_fun <- function( Y,a, t, beta){
-      (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-    }
-    if(substr(input$parameter, 1,3)!="bet"){
-      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-    }else{
-      mybetas <-c(input$H0, input$Ha)
-    }
-    
-    Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-    
-  }
+EventRates <- reactive({
   
-  Pr.Nocens
+  a = -log(input$S.0)/input$t.0
+  
+  beta = getBetas()[2]
+  lam = getLam()
+  
+  
+  eventrate <- Ft(input$predict.time, a = a, beta) - (Pr.cTtmax(lam, tmax =input$predict.time , a, beta))
+  censoringrate <-  Ft(input$time.max, a = a, beta) - (Pr.cTtmax(lam, tmax =input$time.max , a, beta))
+  list("eventrate" = eventrate, "censoringrate" = censoringrate)
   
 })
 
+
+
+
+output$NullLine1 <- reactive({ 
+  HTML(paste("H<sub>0</sub>: ", input$parameter,  ifelse(input$parameter=="FPR(c)", " &ge; ", " &le; "), input$H0, " vs.", sep = ""))
+}) 
+output$NullLine2 <- reactive({
+  HTML(paste("H<sub>a</sub>: ", input$parameter,  ifelse(input$parameter=="FPR(c)", " < ", " > "),input$H0, sep = ""))
+})
+
+
+getLam <- reactive({
+  a = -log(input$S.0)/input$t.0
+  beta = getBetas()[2]
+  mymax = 100-floor(Pr.cTtmax(lam = 100, input$time.max, a, getBetas()[2])*100)
+  if(input$cens.perc >mymax){
+    
+    
+    out <- uniroot(function(lam, cens.perc, tmax, a, beta){Pr.cTtmax(lam, tmax, a, beta) - cens.perc}, 
+                   c(0, 100),
+                   cens.perc =  (input$cens.perc - mymax)/100, 
+                   tmax = input$time.max, 
+                   a = a, 
+                   beta = beta)$root
+  }else{
+    
+    out = 0
+  }
+  
+  out
+  
+})
 
 #####
 ## render ui's
 #####
  
-  
-  output$censType <- renderUI({
-    if(input$censorType=="cens.perc") sliderInput("cens.perc", label = "Percentage Censored:", min = 0, max = 99, value = 50 )
-    else numericInput("time.max", label = "", value=10, min = 0)
-  })
-  
-  output$NullLine1 <- reactive({ 
-    HTML(paste("H<sub>0</sub>: ", input$parameter,  ifelse(input$parameter=="FPR(c)", " &ge; ", " &le; "), input$H0, " vs.", sep = ""))
-  }) 
-  output$NullLine2 <- reactive({
-    HTML(paste("H<sub>a</sub>: ", input$parameter,  ifelse(input$parameter=="FPR(c)", " < ", " > "),input$H0, sep = ""))
-  })
-  
+
   output$nullInput <- renderUI({
     
     sliderInput("H0", label = "", 
@@ -160,6 +183,21 @@ PrNocens <- reactive({
                 step = .005)
     
   })
+output$censoringInput <- renderUI({
+  
+  a = -log(input$S.0)/input$t.0
+  mymax = 100-floor(Pr.cTtmax(lam = 100, input$time.max, a, getBetas()[2])*100)
+  #mymax = floor((1- Ft(input$time.max, a = a, getBetas()[[2]]))*100)
+  
+  sliderInput("cens.perc",
+              "Total percent of observations censored:", 
+              min = mymax, 
+              max = 99, 
+              value =mymax , 
+              step=1)
+  
+  
+})
 
 
 #####
@@ -167,13 +205,19 @@ PrNocens <- reactive({
 #####
 
 
+output$censoringNote <- renderText({
+  a = -log(input$S.0)/input$t.0
+  paste("This followup time would cause ", 
+        100-floor(Pr.cTtmax(lam = 100, input$time.max, a, getBetas()[2])*100), 
+        "% of observations to be censored on average. To add censoring due to study participants dropping out before time to followup, use the slider below.", sep = "")
+})
 
  output$printEstMethod <-renderText({
    
-   if(is.null(getSimulateN())) return(NULL)
+   if(is.null(getPowerSim())) return(NULL)
    
    
- if(getSimulateN()$ESTmethod=="SP") ESTmethod = "Semi-parametric"
+ if(getPowerSim()$ESTmethod=="SP") ESTmethod = "Semi-parametric"
  else ESTmethod = "Non-parametric"
    HTML(paste("Estimation Method: <strong>", ESTmethod, "</strong>", sep = ""))
    
@@ -181,71 +225,30 @@ PrNocens <- reactive({
  
   output$printSampSize <-renderText({
 
-      if(is.null(getSimulateN())) return(NULL)
+      if(is.null(getPowerSim())) return(NULL)
 
-    HTML(paste("Cohort sample size: <strong>", getSimulateN()$N, "</strong>", sep = ""))
+    HTML(paste("Cohort sample size: <strong>", getPowerSim()$N, "</strong>", sep = ""))
     
   }) 
  
  output$printSampSizeNCC <-renderText({
-   if(is.null(getSimulateN())) return(NULL)
-   HTML(paste(ifelse(getSimulateN()$type ==1, "(Average) ", " "), "NCC sample size: <strong>", round(mean(getSimulateN()$N_ncc)), "</strong>" ,sep = ""))
+   if(is.null(getPowerSim())) return(NULL)
+   HTML(paste(ifelse(getPowerSim()$type ==1, "(Average) ", " "), "NCC sample size: <strong>", round(mean(getPowerSim()$N_ncc)), "</strong>" ,sep = ""))
    
  }) 
   
 
 output$getEventRates <- renderText({
-  a = -log(input$S.0)/input$t.0
   
-  my_fun <- function( Y,a, t, beta){
-    (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-  }
-  if(substr(input$parameter, 1,3)!="bet"){
-    mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-  }else{
-    mybetas <-c(input$H0, input$Ha)
-  }
-  
-  Event.rate <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$predict.time, beta = mybetas[2] )$value
-  
-  if(input$censorType=="cens.perc") {
-    Pr.Nocens  = 1-input$cens.perc/100
-    out = Event.rate*Pr.Nocens 
-  }
-  else{
-    
-    if(input$predict.time <= input$time.max) out = Event.rate
-    else out =integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-    
-  }
-  
-  x <- HTML(paste("<li><strong>Event rate at prediction time: Pr( T < prediction time & T not censored) =",  round(out, 3), "</strong></li>"))
+  x <- HTML(paste("<li><strong>Event rate at prediction time: Pr( T < prediction time & T not censored) =",  round(EventRates()$eventrate, 2), "</strong></li>"))
   x
+  
   
 })
 
 output$censoringPercentage <- renderText({
   
-  
-  
-  if(input$censorType=="cens.perc") Pr.Nocens = 1-input$cens.perc/100
-  else {
-    a = -log(input$S.0)/input$t.0
-    
-    my_fun <- function( Y,a, t, beta){
-      (1- exp(-a*t*exp(Y*beta)))*dnorm(Y)
-    }
-    if(substr(input$parameter, 1,3)!="bet"){
-      mybetas <- get.Betas(substr(input$parameter, 1,3), a, input$predict.time, cutoff = input$cutoff, input$H0, input$Ha)
-    }else{
-      mybetas <-c(input$H0, input$Ha)
-    }
-    
-    Pr.Nocens <- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t= input$time.max, beta = mybetas[2] )$value
-    
-  }
-  
-  x <- HTML(paste("<li><strong>Overall observed event rate (due to censoring): Pr( T not censored) =", round(Pr.Nocens,3), "</strong></li>"))
+  x <- HTML(paste("<li><strong>Overall observed event rate (due to censoring): Pr( T not censored) =", round(EventRates()$censoringrate,2), "</strong></li>"))
   x
   
 })
@@ -363,22 +366,22 @@ output$TrueValuesTable <- renderTable({
 
 #main plot for Simulation
 output$simulationGraphTop <- renderPlot({
-  if(!is.null(getSimulateN())){
+  if(!is.null(getPowerSim())){
     
-    printResultPlot(getSimulateN(), pars= substr(input$parameter, 1,3), useLogit = FALSE)
+    printResultPlot(getPowerSim(), pars= substr(input$parameter, 1,3), useLogit = FALSE)
   }
 })
 
 output$simulationGraphSub <- renderPlot({
-  if(!is.null(getSimulateN())){
+  if(!is.null(getPowerSim())){
     
-    if(getSimulateN()$ESTmethod=="SP") mypars = c( "beta", "AUC", "TPR", "FPR", "PPV", "NPV")
+    if(getPowerSim()$ESTmethod=="SP") mypars = c( "beta", "AUC", "TPR", "FPR", "PPV", "NPV")
     else mypars = c( "AUC", "TPR", "FPR", "PPV", "NPV")
     
     
     mypars = mypars[mypars!=substr(input$parameter, 1,3)]
     if(length(mypars)>0){
-      printResultPlot(getSimulateN(), pars= mypars, useLogit = FALSE)
+      printResultPlot(getPowerSim(), pars= mypars, useLogit = FALSE)
     }else{ return()}
     
   }

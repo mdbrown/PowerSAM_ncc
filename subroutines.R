@@ -1,7 +1,46 @@
 logit = function(x) log(x/(1-x))
 expit = function(x) exp(x)/(1+exp(x))
 
+includeRmd <- function(path){
+  if (!require(knitr))
+    stop("knitr package is not installed")
+  if (!require(markdown))
+    stop("Markdown package is not installed")
+  shiny:::dependsOnFile(path)
+  contents = paste(readLines(path, warn = FALSE), collapse = '\n')
+  html <- knitr::knit2html(text = contents, fragment.only = TRUE)
+  Encoding(html) <- 'UTF-8'
+  return(HTML(html))
+}
 
+myheaderPanel <- function(title, windowTitle=title) {    
+  tagList(
+    tags$head(tags$title(windowTitle)),
+    div(class="span12", style="padding: 10px 0px;",
+        h3(title)
+    )
+  )
+}
+
+
+
+pageWithSidebarNavbar <- function(navbar, headerPanel, sidebarPanel, mainPanel) {
+  
+  bootstrapPage(
+    # basic application container divs
+    navbar,
+    div(
+      class="container-fluid", 
+      div(class="row-fluid", 
+          headerPanel
+      ),
+      div(class="row-fluid", 
+          sidebarPanel, 
+          mainPanel
+      )
+    )
+  )
+}
 ############################3
 ## functions to plot results
 #############################
@@ -497,8 +536,109 @@ PPV.fun <- function(c, beta, a, t, f_x){
 }
 
 
-### get estimated sample sizes given a cohort
+### simulate data
 
 
+
+SIM.data.singleMarker <- function(nn=500, 
+                                  beta, 
+                                  lam0, 
+                                  cens.lam = 0, 
+                                  time.max, 
+                                  m.match)
+{
+  ## ===================================================== ##
+  ## Z is the matching vector; Y is the marker of interest ##
+  ## ===================================================== ##
+  yi = rnorm(nn);# yi = cbind(yi,yi+rnorm(nn))
+  Zi = NULL   
+  
+  mu.i <- yi*beta
+  
+  #true survival time
+  r.ti <- log(-log(runif(nn)))
+  ti <-  -mu.i + r.ti
+  ti <- exp(ti)/lam0
+  
+  
+  #censoring time
+  ci = rep(time.max, nn)
+  
+  
+  if(cens.lam > 0){
+    ci = rexp(nn, rate = cens.lam)     
+  }
+  
+  
+  ci = pmin(ci, time.max)
+  
+  
+  
+  xi = pmin(ti,ci); 
+  di = 1*(ti<=ci); 
+  bi = vi = di; 
+  
+  ind.case = (1:nn)[di==1]; 
+  tivec = nivec = rep(0,sum(di)); 
+  
+  IND.ik = matrix(NA,nrow=sum(di),ncol=m.match+1) ## id of cases and the corresponding controls
+  Iik0 = matrix(0,nrow=sum(di),ncol=nn-sum(di))  ## indicates whether xk is in the matched risk set for ti
+  for(l in 1:sum(di)){
+    tmpind = ind.case[l]; 
+    risksetind = xi>xi[tmpind];  
+    IND.ik[l,1]=tmpind;  
+    ## =========================================================================== ##
+    ## if matching, additional constraint of |Zi - Zl| <= a0 needs to be satisfied ##
+    ## =========================================================================== ##
+    
+    Iik0[l,] = 1*risksetind[di==0]
+    risksetind = (1:nn)[risksetind]; 
+    nl = length(risksetind);
+    nivec[l] = nl;
+    tivec[l] = ti[tmpind];  
+    ## =========================================================================== ##
+    ## if riskset is empty, no control would be selected                           ##
+    ## if riskset size < m.match, only select # of available for Finite Population ##
+    ## =========================================================================== ##
+    if(length(risksetind)>0){
+      controlind = as.numeric(sample(as.character(risksetind),min(m.match,nl))); ##Finite Population
+      IND.ik[l,-1] = c(controlind,rep(NA,m.match-length(controlind)))
+      vi[controlind]=1
+    }
+    
+  }
+  Iik0 = Iik0[,vi[di==0]==1];  
+  list("data"=as.data.frame(cbind(xi,di,vi,yi,Zi)), "Vi.k0.IND"=cbind(tivec,nivec,IND.ik),"Iik0"=Iik0) 
+}   
+
+
+
+#Pr(T<=t)
+Ft <- function(t, a, beta){ 
+  
+  my_fun <- function( Y,a, t, beta){
+    exp(-a*t*exp(Y*beta))*dnorm(Y)
+  }
+  
+  1- integrate(my_fun, lower = -Inf, upper = Inf, a= a, t = t, beta = beta )$value
+}
+
+#Pr(C < T and T < tmax)
+
+Pr.cTtmax <- function(lam, tmax, a, beta){
+  
+  myfun <- Vectorize(function(c, lam, tmax, a, beta){
+    #(1 - Ft(c, a, beta))*(1/cmax)},
+    ifelse(c < tmax, Ft(tmax, a, beta) - Ft(c, a, beta), 0)*dexp(c, rate=lam)},
+    "c")
+  integrate(myfun, 
+            lower = 0, upper = Inf,
+            lam=lam, 
+            tmax = tmax,
+            a = a, 
+            beta = beta)$value
+  
+  
+}
 
 

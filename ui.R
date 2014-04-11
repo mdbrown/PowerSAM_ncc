@@ -24,21 +24,21 @@ shinyUI(pageWithSidebarNavbar(
     ),
     wellPanel(
      selectInput("ESTmethod", "Estimation Method:", 
-                 choices = c( "Non-parametric" = "NP", "Semi-parametric" = "SP"))
+                 choices = c( "Non-parametric kernel" = "NP", "Semi-parametric Cox" = "SP"))
     ),
     wellPanel(p("Model Parameters:"),
               numericInput("S.0", label = HTML("Baseline Survival at time t<sub>0</sub>: S(t<sub>0</sub>|Y=0)"), value = round(exp(-.1), 3), min = .01, max = .99, step = .01),
               numericInput("t.0", label = HTML("time t<sub>0</sub>"), 1),
               numericInput("predict.time", "Future prediction time", 2)
     ),
-    wellPanel(
-              selectInput("censorType", "Type of Censoring", 
-                                 choices = c("Percentage of observations" = "cens.perc", 
-                                             "Maximum Time" = "maxtime")),
-              uiOutput("censType")
-             # sliderInput("cens.perc", label = "Percentage Censoring:", min = 0, max = 99, value = 20 )
-      
-      ),
+    
+    wellPanel(p("Censoring Parameters"), 
+              numericInput("time.max", "Time to follow up:", 5), 
+              textOutput("censoringNote"),
+              br(),
+              uiOutput("censoringInput")
+              
+    ),
 
     wellPanel( p("Hypothesis Test:"),
 
