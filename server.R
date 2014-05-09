@@ -316,7 +316,7 @@ output$TrueValuesTable <- renderTable({
                                c(nullnpv, altnpv)))
   names(mytable ) = c("Value under Null Hypothesis", "True Value")
   
-  row.names(mytable) = c("β", "AUC", 
+  row.names(mytable) = c("coefficient", "AUC", 
                          paste("TPR(", input$cutoff ,")", sep = ""), 
                          paste("FPR(", input$cutoff ,")", sep = ""),
                          paste("PPV(", input$cutoff ,")", sep = ""), 
